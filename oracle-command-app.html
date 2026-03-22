@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#080c14">
+<title>Oracle Command</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#080c14;--bg2:#0d1220;--bg3:#111827;--bg4:#1a2235;--bg5:#1e2d45;--cyan:#00d4ff;--cyan2:#00a8cc;--cyan-dim:rgba(0,212,255,0.1);--purple:#7c3aed;--purple2:#6d28d9;--purple-dim:rgba(124,58,237,0.15);--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,0.07);--border2:rgba(0,212,255,0.22);--font:'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;--mono:'Space Mono','Courier New',monospace;--nav-h:62px;--top-h:54px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;-webkit-font-smoothing:antialiased}
+button{font-family:var(--font);cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:var(--font)}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.18);border-radius:2px}
+
+/* SETUP BANNER */
+#setupBanner{position:fixed;top:0;left:0;right:0;z-index:10000;background:#7c3aed;color:#fff;padding:10px 18px;font-size:0.82rem;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#setupBanner.gone{display:none}
+.setup-txt{font-weight:600}
+.setup-link{color:#c4b5fd;text-decoration:underline;cursor:pointer;white-space:nowrap}
+
+/* LOADING SCREEN */
+#loadScreen{position:fixed;inset:0;z-index:9500;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+#loadScreen.gone{display:none}
+.load-logo{font-family:var(--mono);font-size:0.82rem;letter-spacing:3px;color:var(--cyan)}
+.load-spin{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* APP SHELL */
+#app{height:100vh;height:100svh;display:none;flex-direction:column;overflow:hidden;position:relative}
+#app.visible{display:flex}
+
+/* AUTH */
+#authScreen{position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+#authScreen.gone{display:none}
+.auth-box{width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:32px 28px;box-shadow:0 0 60px rgba(0,212,255,0.07)}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:24px}
+.auth-logo-icon{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+.auth-logo-text{font-family:var(--mono);font-size:0.78rem;letter-spacing:2px;color:var(--cyan);font-weight:700}
+.auth-title{font-size:1.4rem;font-weight:700;margin-bottom:4px}
+.auth-sub{font-size:0.83rem;color:var(--text2);margin-bottom:24px}
+.auth-tabs{display:flex;margin-bottom:22px;border-bottom:1px solid var(--border)}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:0.82rem;font-weight:600;letter-spacing:1px;color:var(--text3);border-bottom:2px solid transparent;transition:all 0.2s}
+.auth-tab.on{color:var(--cyan);border-bottom-color:var(--cyan)}
+.ff{margin-bottom:14px}
+.ff label{display:block;font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
+.ff input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-size:0.9rem;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.ff input:focus{border-color:var(--border2)}
+.ff input::placeholder{color:var(--text3)}
+.btn-main{width:100%;padding:14px;border-radius:8px;background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#000;font-weight:700;font-size:0.88rem;letter-spacing:1px;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+.btn-main:hover{box-shadow:0 6px 20px rgba(0,212,255,0.3)}
+.btn-main:disabled{opacity:0.6;pointer-events:none}
+.auth-err{color:var(--red);font-size:0.78rem;margin-top:10px;text-align:center;min-height:18px}
+
+/* TOP BAR */
+#topBar{height:var(--top-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--bg);border-bottom:1px solid var(--border);z-index:100}
+.top-logo{display:flex;align-items:center;gap:9px}
+.top-logo-icon{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--purple));display:flex;align-items:center;justify-content:center;font-size:0.72rem}
+.top-logo-text{font-family:var(--mono);font-size:0.72rem;letter-spacing:2px;color:var(--cyan);font-weight:700}
+.top-right{display:flex;align-items:center;gap:10px}
+.icon-btn{width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:0.85rem;transition:all 0.2s}
+.icon-btn:hover{border-color:var(--border2);color:var(--cyan)}
+.user-av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;color:#fff}
+
+/* SCREENS */
+#mainContent{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:18px 18px 20px;display:none;-webkit-overflow-scrolling:touch}
+.screen.on{display:block}
+#oracleScreen{padding:0;display:none;flex-direction:column}
+#oracleScreen.on{display:flex}
+
+/* BOTTOM NAV */
+#bottomNav{flex-shrink:0;display:flex;align-items:stretch;background:var(--bg2);border-top:1px solid var(--border);height:calc(var(--nav-h) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--text3);font-size:0.58rem;letter-spacing:1px;text-transform:uppercase;transition:color 0.2s;position:relative;-webkit-tap-highlight-color:transparent}
+.ni.on{color:var(--cyan)}
+.ni.on::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:2px;background:var(--cyan);border-radius:0 0 2px 2px}
+.ni-icon{font-size:1.1rem;line-height:1}
+
+/* COMMON */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.card-c{border-color:var(--border2)}
+.lbl{font-family:var(--mono);font-size:0.62rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.stitle{font-size:1rem;font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:0.62rem;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.pill-c{background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--border2)}
+.pill-g{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.2)}
+.pill-y{background:rgba(245,158,11,0.1);color:var(--yellow);border:1px solid rgba(245,158,11,0.2)}
+.pill-p{background:var(--purple-dim);color:#a78bfa;border:1px solid rgba(124,58,237,0.3)}
+.pbar-bg{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.pbar{height:100%;border-radius:2px;transition:width 1.2s ease;background:linear-gradient(90deg,var(--cyan2),var(--cyan))}
+.pbar-p{background:linear-gradient(90deg,var(--purple2),var(--purple))}
+.div{height:1px;background:var(--border);margin:14px 0}
+.rb{display:flex;align-items:center;justify-content:space-between}
+.row{display:flex;align-items:center;gap:8px}
+.t2{color:var(--text2)}.t3{color:var(--text3)}.sm{font-size:0.84rem}.xs{font-size:0.72rem}.xxs{font-size:0.64rem}
+.mono{font-family:var(--mono)}.fw7{font-weight:700}.tc{color:var(--cyan)}
+.mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.mb4{margin-bottom:4px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}
+.btn-c{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 18px;border-radius:8px;border:1.5px solid var(--cyan);color:var(--cyan);font-size:0.82rem;font-weight:600;letter-spacing:1px;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+.btn-c:hover{background:var(--cyan-dim)}
+.btn-cf{background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#000;border:none}
+.btn-cf:hover{box-shadow:0 6px 18px rgba(0,212,255,0.3)}
+.btn-c:disabled,.btn-cf:disabled{opacity:0.5;pointer-events:none}
+.empty{text-align:center;padding:32px 16px;color:var(--text3);font-size:0.88rem;line-height:1.6}
+.empty-ico{font-size:2.2rem;margin-bottom:10px}
+.mini-spin{width:16px;height:16px;border:2px solid rgba(255,255,255,0.2);border-top-color:currentColor;border-radius:50%;animation:spin 0.8s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+
+/* DASHBOARD */
+.dash-hero{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden}
+.dash-hero::after{content:'';position:absolute;top:-50px;right:-50px;width:130px;height:130px;background:radial-gradient(circle,rgba(0,212,255,0.1),transparent 70%);pointer-events:none}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.dash-stat-l{font-size:0.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:3px}
+.dash-stat-v{font-size:1.3rem;font-weight:700}
+.dash-stat-s{font-size:0.7rem;color:var(--green)}
+.auto-card{background:linear-gradient(135deg,#1e1b4b,#2d1b69);border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:16px;margin-bottom:12px}
+.op-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:9px}
+.op-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.op-name{font-weight:600;font-size:0.92rem;margin-top:2px}
+.op-sub{font-size:0.7rem;color:var(--text3);margin-top:2px}
+.op-foot{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.del-btn{color:var(--text3);font-size:0.8rem;padding:4px 8px;border-radius:4px;transition:color 0.2s}
+.del-btn:hover{color:var(--red)}
+.hist-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.hist-item:last-child{border-bottom:none}
+.hist-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);margin-top:6px;flex-shrink:0}
+.hist-time{font-family:var(--mono);font-size:0.65rem;color:var(--text3);white-space:nowrap}
+.hist-text{font-size:0.82rem;color:var(--text2);line-height:1.5}
+.hist-text .hl{color:var(--cyan)}
+
+/* FORGE */
+.mission-ta{width:100%;background:var(--bg4);border:1px solid var(--border);color:var(--text);padding:14px;border-radius:10px;font-size:0.88rem;min-height:90px;resize:none;outline:none;transition:border-color 0.2s;line-height:1.6;-webkit-appearance:none}
+.mission-ta:focus{border-color:var(--border2)}
+.mission-ta::placeholder{color:var(--text3)}
+.tech-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tech-cell{background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:11px}
+.tc-l{font-size:0.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.tc-v{font-size:0.82rem;font-weight:600;line-height:1.4}
+.agent-row{display:flex;align-items:center;gap:10px;background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:7px}
+.agent-ico{width:34px;height:34px;border-radius:8px;background:var(--bg5);display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0}
+.agent-n{font-weight:600;font-size:0.88rem}
+.agent-r{font-size:0.65rem;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.metric-box{background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center}
+.metric-v{font-size:1.1rem;font-weight:700;color:var(--cyan);font-family:var(--mono)}
+.metric-l{font-size:0.58rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.resp-item{display:flex;gap:9px;margin-bottom:6px;font-size:0.84rem;color:var(--text2)}
+.resp-n{color:var(--cyan);font-family:var(--mono);font-weight:700;flex-shrink:0}
+
+/* ORACLE */
+.ora-top{padding:16px 18px 0;flex-shrink:0}
+.ora-msgs{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 18px;display:flex;flex-direction:column;gap:14px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+.ora-bottom{flex-shrink:0;padding:10px 18px 14px;border-top:1px solid var(--border);display:flex;align-items:flex-end;gap:9px}
+.ora-input{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:11px 15px;border-radius:22px;font-size:0.88rem;outline:none;resize:none;min-height:42px;max-height:110px;line-height:1.5;transition:border-color 0.2s;-webkit-appearance:none}
+.ora-input:focus{border-color:var(--border2)}
+.ora-input::placeholder{color:var(--text3)}
+.ora-send{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#000;font-size:0.95rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+.ora-send:hover{box-shadow:0 4px 14px rgba(0,212,255,0.4)}
+.ora-send:disabled{opacity:0.5}
+.ora-plus{width:42px;height:42px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:1.1rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.msg-u{align-self:flex-end;max-width:86%}
+.msg-o{align-self:flex-start;max-width:92%;width:100%}
+.bub-u{background:var(--bg4);border:1px solid var(--border2);padding:12px 15px;border-radius:16px 16px 4px 16px;font-size:0.88rem;line-height:1.65;word-wrap:break-word}
+.bub-o{background:var(--bg3);border:1px solid var(--border);padding:12px 15px;border-radius:16px 16px 16px 4px;font-size:0.88rem;line-height:1.65;word-wrap:break-word}
+.o-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.o-ind{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0}
+.o-name{font-size:0.65rem;letter-spacing:1px;text-transform:uppercase;color:var(--cyan);font-weight:600}
+.o-status{font-size:0.7rem;color:var(--text3);font-style:italic}
+.typing-dots{display:flex;align-items:center;gap:4px;padding:2px 0}
+.typing-dots span{width:6px;height:6px;border-radius:50%;background:rgba(0,212,255,0.3);border:1px solid var(--cyan);display:inline-block;animation:tdot 1.4s ease infinite}
+.typing-dots span:nth-child(2){animation-delay:0.18s}
+.typing-dots span:nth-child(3){animation-delay:0.36s}
+@keyframes tdot{0%,60%,100%{transform:translateY(0);opacity:0.4}30%{transform:translateY(-5px);opacity:1}}
+
+/* CLIENTS */
+.chat-bub{background:var(--bg4);border:1px solid var(--border);border-radius:12px 12px 12px 4px;padding:11px 13px;margin-bottom:6px}
+.chat-bub.right{border-radius:12px 12px 4px 12px;margin-left:24px}
+.cb-sender{font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px}
+.cb-text{font-size:0.86rem;line-height:1.5}
+.sync-input{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;font-size:0.86rem;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.sync-input:focus{border-color:var(--border2)}
+.sync-input::placeholder{color:var(--text3)}
+.sync-send{width:40px;height:40px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#000;font-size:0.9rem;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
+.trans-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.trans-row:last-child{border-bottom:none}
+.trans-ico{width:30px;height:30px;border-radius:7px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:0.82rem;flex-shrink:0}
+.trans-n{font-size:0.82rem;font-weight:600;margin-bottom:2px}
+.trans-m{font-size:0.68rem;color:var(--text3)}
+.del-card{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:9px}
+.del-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.del-name{font-weight:600;font-size:0.88rem;word-break:break-all}
+.del-meta{font-size:0.68rem;color:var(--text3);margin-bottom:9px}
+.btn-dl{width:100%;padding:9px;border-radius:7px;background:var(--bg5);border:1px solid var(--border);color:var(--text2);font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;font-weight:600;transition:all 0.2s}
+.btn-dl:hover{border-color:var(--border2);color:var(--cyan)}
+
+/* FILE UPLOAD */
+.upload-zone{border:2px dashed rgba(0,212,255,0.2);border-radius:10px;padding:20px;text-align:center;transition:all 0.2s;cursor:pointer;margin-bottom:12px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--cyan);background:var(--cyan-dim)}
+.upload-zone input{display:none}
+.upload-label{font-size:0.82rem;color:var(--text3);margin-top:6px}
+.upload-ico{font-size:1.8rem;margin-bottom:6px}
+
+/* MASTERY */
+.rank-card{background:linear-gradient(135deg,var(--bg3),var(--bg4));border:1px solid var(--border2);border-radius:14px;padding:18px;display:flex;align-items:center;gap:13px;margin-bottom:12px}
+.rank-badge{width:48px;height:48px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--cyan2),var(--purple));display:flex;align-items:center;justify-content:center;font-size:0.88rem;font-weight:900;color:#fff;font-family:var(--mono)}
+.rank-n{font-size:1.3rem;font-weight:800;color:var(--cyan)}
+.rank-s{font-size:0.78rem;color:var(--text2);margin-top:2px}
+.badge-card{display:flex;align-items:flex-start;gap:11px;background:var(--bg4);border:1px solid var(--border);border-radius:11px;padding:13px;margin-bottom:7px}
+.badge-ico{width:40px;height:40px;border-radius:9px;background:var(--bg5);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.badge-n{font-weight:700;font-size:0.9rem;margin-bottom:3px}
+.badge-d{font-size:0.78rem;color:var(--text2);line-height:1.4}
+.badge-f{display:flex;align-items:center;gap:8px;margin-top:7px}
+.track-card{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:7px}
+.track-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.track-n{font-size:0.88rem;font-weight:600}
+.track-p{font-family:var(--mono);font-size:0.82rem;color:var(--cyan)}
+.insight-card{padding:13px 0;border-bottom:1px solid var(--border)}
+.insight-card:last-child{border-bottom:none}
+.insight-tag{font-size:0.6rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--cyan);margin-bottom:5px}
+.insight-n{font-size:0.9rem;font-weight:600;margin-bottom:4px;line-height:1.4}
+.insight-t{font-size:0.78rem;color:var(--text2);line-height:1.5}
+.insight-f{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+
+/* UPGRADE CARD */
+.upgrade-card{background:linear-gradient(135deg,#1e1b4b,#2d1b69);border:1px solid rgba(124,58,237,0.4);border-radius:14px;padding:20px;margin-bottom:12px;text-align:center}
+.upgrade-title{font-size:1.1rem;font-weight:800;color:#c4b5fd;margin-bottom:6px}
+.upgrade-sub{font-size:0.82rem;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.btn-upgrade{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;border-radius:8px;background:linear-gradient(135deg,var(--purple2),var(--purple));color:#fff;font-weight:700;font-size:0.85rem;letter-spacing:1px;text-decoration:none;transition:all 0.2s}
+.btn-upgrade:hover{box-shadow:0 6px 20px rgba(124,58,237,0.4)}
+.upgrade-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;text-align:left}
+.upgrade-feat{font-size:0.78rem;color:var(--text2);display:flex;align-items:center;gap:6px}
+.upgrade-feat::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+
+/* MODALS */
+.overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.75);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s}
+.overlay.on{opacity:1;pointer-events:all}
+.sheet{width:100%;max-width:480px;background:var(--bg2);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:22px 20px;transform:translateY(100%);transition:transform 0.3s cubic-bezier(0.32,0.72,0,1);max-height:90vh;overflow-y:auto}
+.overlay.on .sheet{transform:translateY(0)}
+.sheet-handle{width:34px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.sheet-title{font-size:1.05rem;font-weight:700;margin-bottom:18px}
+.sf{margin-bottom:13px}
+.sf label{display:block;font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.sf input,.sf select,.sf textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 13px;border-radius:8px;font-size:0.86rem;outline:none;transition:border-color 0.2s;font-family:var(--font);-webkit-appearance:none}
+.sf input:focus,.sf select:focus{border-color:var(--border2)}
+.sf select option{background:var(--bg3)}
+.modal-btns{display:flex;gap:9px;margin-top:4px}
+.btn-cancel{flex:1;padding:12px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-weight:600;font-size:0.86rem}
+.btn-save{flex:2;padding:12px;border-radius:8px;background:linear-gradient(135deg,var(--cyan2),var(--cyan));color:#000;font-weight:700;font-size:0.86rem}
+.sf-err{color:var(--red);font-size:0.75rem;margin-top:8px;display:none}
+
+/* CONFIRM */
+.confirm-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.2s}
+.confirm-overlay.on{opacity:1;pointer-events:all}
+.confirm-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;width:100%;max-width:320px;transform:scale(0.9);transition:transform 0.2s}
+.confirm-overlay.on .confirm-box{transform:scale(1)}
+.confirm-title{font-weight:700;font-size:1rem;margin-bottom:8px}
+.confirm-text{font-size:0.84rem;color:var(--text2);margin-bottom:20px;line-height:1.5}
+.confirm-btns{display:flex;gap:9px}
+.btn-no{flex:1;padding:11px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-weight:600;font-size:0.84rem}
+.btn-yes{flex:1;padding:11px;border-radius:8px;background:var(--red);color:#fff;font-weight:700;font-size:0.84rem}
+
+/* TOAST */
+.toast{position:fixed;top:18px;left:50%;z-index:9999;transform:translateX(-50%) translateY(-80px);background:var(--bg3);border:1px solid var(--border2);padding:10px 20px;border-radius:30px;font-size:0.82rem;font-weight:600;color:var(--cyan);transition:transform 0.35s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:rgba(239,68,68,0.4);color:var(--red)}
+
+@media(min-width:600px){.auth-box{padding:40px 36px}#topBar{padding:0 24px}.screen{padding:22px 24px 24px}#oracleScreen .ora-top{padding:20px 24px 0}#oracleScreen .ora-msgs{padding:16px 24px}#oracleScreen .ora-bottom{padding:12px 24px 16px}}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- SETUP BANNER -->
+<div id="setupBanner" class="gone">
+  <div class="setup-txt">⚠️ Supabase not configured — running in demo mode. Data won't persist across devices.</div>
+  <div class="setup-link" onclick="showToast('See setup guide below the app')">Setup Guide</div>
+</div>
+
+<!-- LOADING -->
+<div id="loadScreen">
+  <div class="load-logo">ORACLE COMMAND</div>
+  <div class="load-spin"></div>
+</div>
+
+<!-- AUTH -->
+<div id="authScreen" class="gone">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">⚡</div>
+      <div class="auth-logo-text">ORACLE COMMAND</div>
+    </div>
+    <div class="auth-title" id="aTitle">Welcome Back</div>
+    <div class="auth-sub" id="aSub">Sign in to your command center</div>
+    <div class="auth-tabs">
+      <button class="auth-tab on" id="tabLogin" onclick="switchTab('login')">Login</button>
+      <button class="auth-tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div id="loginForm">
+      <div class="ff"><label>Email</label><input type="email" id="lEmail" placeholder="architect@oracle.io" autocomplete="email"></div>
+      <div class="ff"><label>Password</label><input type="password" id="lPass" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="btn-main" id="loginBtn" onclick="doLogin()">ACCESS COMMAND CENTER</button>
+    </div>
+    <div id="signupForm" style="display:none">
+      <div class="ff"><label>Full Name</label><input type="text" id="sName" placeholder="Your name" autocomplete="name"></div>
+      <div class="ff"><label>Email</label><input type="email" id="sEmail" placeholder="architect@oracle.io" autocomplete="email"></div>
+      <div class="ff"><label>Password</label><input type="password" id="sPass" placeholder="Min. 6 characters" autocomplete="new-password"></div>
+      <button class="btn-main" id="signupBtn" onclick="doSignup()">INITIALIZE PROFILE</button>
+    </div>
+    <div class="auth-err" id="authErr"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="topBar">
+    <div class="top-logo">
+      <div class="top-logo-icon">⚡</div>
+      <div class="top-logo-text">ORACLE COMMAND</div>
+    </div>
+    <div class="top-right">
+      <button class="icon-btn" onclick="showToast('Search coming soon')" aria-label="Search">🔍</button>
+      <button class="icon-btn" onclick="doLogout()" title="Logout">⚙️</button>
+      <div class="user-av" id="userAv">A</div>
+    </div>
+  </div>
+
+  <div id="mainContent">
+
+    <!-- DASHBOARD -->
+    <div class="screen on" id="dashScreen">
+      <div class="lbl">PORTFOLIO OVERVIEW</div>
+      <div class="dash-hero">
+        <div style="font-size:1.6rem;font-weight:800;line-height:1.1;margin-bottom:12px">System<br>Performance</div>
+        <div class="dash-grid">
+          <div><div class="dash-stat-l">MONTHLY REVENUE</div><div class="dash-stat-v" id="dRev">$0</div><div class="dash-stat-s" id="dRevS">No ops yet</div></div>
+          <div><div class="dash-stat-l">EFFICIENCY %</div><div class="dash-stat-v">94.8 <span style="font-size:0.85rem;color:var(--text3)">opt</span></div></div>
+          <div><div class="dash-stat-l">ACTIVE NODES</div><div class="dash-stat-v" id="dNodes">0 <span style="font-size:0.85rem;color:var(--text3)">live</span></div></div>
+          <div><div class="dash-stat-l">CLIENTS</div><div class="dash-stat-v" id="dClients">0 <span style="font-size:0.85rem;color:var(--text3)">active</span></div></div>
+        </div>
+      </div>
+      <div class="auto-card">
+        <div style="font-size:0.78rem;font-weight:600;color:#a78bfa;margin-bottom:3px">⚡ TURBO MODE ACTIVE</div>
+        <div style="font-size:1rem;font-weight:700;margin-bottom:5px">Automated Optimization</div>
+        <div class="xs t2" style="margin-bottom:12px">AI Agents monitoring active projects for performance improvements.</div>
+        <button class="btn-c btn-cf" style="width:100%" onclick="showToast('Core synchronized ✓')">SYNCHRONIZE CORE</button>
+      </div>
+      <div class="rb mb8">
+        <div class="fw7">Active Operations</div>
+        <button class="btn-c" style="padding:6px 12px;font-size:0.7rem" onclick="openModal()">+ ADD OP</button>
+      </div>
+      <div id="opsList"></div>
+      <div class="fw7 mt8 mb4">Command History</div>
+      <div class="xxs t3 mb8">Real-time log of operations and deployments</div>
+      <div class="card" id="histList"></div>
+    </div>
+
+    <!-- FORGE -->
+    <div class="screen" id="forgeScreen">
+      <div class="lbl">STRATEGY TERMINAL // PROJECT FORGE</div>
+      <div style="font-size:1.65rem;font-weight:800;color:var(--cyan);letter-spacing:-0.5px;margin-bottom:5px;line-height:1.1">PROJECT<br>BLUEPRINT</div>
+      <div class="sm t2 mb16">Input your mission. Oracle synthesizes a complete technical roadmap.</div>
+      <button class="btn-c btn-cf mb16" style="width:100%" onclick="runSynthesis()">⚡ INITIATE SYNTHESIS</button>
+      <div class="card mb12">
+        <div class="lbl mb8">DEFINE GLOBAL MISSION</div>
+        <textarea class="mission-ta" id="missionTa" placeholder="e.g., Build a decentralized autonomous marketplace for AI training data..."></textarea>
+      </div>
+      <div class="card mb12">
+        <div class="rb mb12">
+          <div class="row"><span class="tc">🔷</span><div class="stitle" style="font-size:0.9rem">TECH STACK</div></div>
+          <div class="pill pill-c" style="font-size:0.58rem">MODULE_01</div>
+        </div>
+        <div class="tech-grid">
+          <div class="tech-cell"><div class="tc-l">FOUNDATIONAL CORE</div><div class="tc-v">Rust / Actix-Web</div></div>
+          <div class="tech-cell"><div class="tc-l">STATE MANAGEMENT</div><div class="tc-v">SurrealDB / Event-Sourcing</div></div>
+          <div class="tech-cell"><div class="tc-l">INTERFACE LAYER</div><div class="tc-v">Next.js 14 / Tailwind</div></div>
+          <div class="tech-cell"><div class="tc-l">SECURITY</div><div class="tc-v">OAuth 2.1 / ZK-Proofs</div></div>
+        </div>
+        <button class="btn-c" style="width:100%;justify-content:center;margin-top:10px;font-size:0.75rem" onclick="showToast('Blueprint editor activated')">MODIFY BLUEPRINTS →</button>
+      </div>
+      <div class="card mb12">
+        <div class="row mb12"><span>🤖</span><div class="stitle" style="font-size:0.9rem">AGENT DESIGN</div></div>
+        <div class="agent-row"><div class="agent-ico">💻</div><div><div class="agent-n">The Coder</div><div class="agent-r">Logic Synthesis</div></div></div>
+        <div class="agent-row"><div class="agent-ico">🎨</div><div><div class="agent-n">The Creative</div><div class="agent-r">UI/UX Dreaming</div></div></div>
+        <div class="agent-row"><div class="agent-ico">🛡️</div><div><div class="agent-n">The Guardian</div><div class="agent-r">Audit &amp; Security</div></div></div>
+        <button class="btn-c" style="width:100%;justify-content:center;margin-top:8px;font-size:0.75rem" onclick="showToast('New agent unit deployed!')">+ DEPLOY SPECIALIZED UNIT</button>
+      </div>
+      <div class="card mb12">
+        <div class="row mb10"><span>❓</span><div class="stitle" style="font-size:0.9rem">PROMPT STRATEGY</div></div>
+        <div class="lbl mb8">ACTIVE HEURISTICS</div>
+        <div class="resp-item"><div class="resp-n">01</div><div>Chain-of-Thought reasoning for complex logic gates.</div></div>
+        <div class="resp-item"><div class="resp-n">02</div><div>Few-shot prompting for consistent UI code generation.</div></div>
+        <div class="resp-item"><div class="resp-n">03</div><div>Temperature dynamic scaling (0.2 logic / 0.8 creative).</div></div>
+      </div>
+      <div class="card">
+        <div class="row mb10"><span>📊</span><div class="stitle" style="font-size:0.9rem">QA &amp; SCALING</div></div>
+        <div class="metric-grid">
+          <div class="metric-box"><div class="metric-v">85%</div><div class="metric-l">Stress Test</div></div>
+          <div class="metric-box"><div class="metric-v">40%</div><div class="metric-l">Auto-Scale</div></div>
+          <div class="metric-box"><div class="metric-v">24ms</div><div class="metric-l">Latency</div></div>
+          <div class="metric-box"><div class="metric-v">1.2M/s</div><div class="metric-l">Concurrency</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORACLE -->
+    <div class="screen" id="oracleScreen">
+      <div class="ora-top">
+        <div class="lbl">ORACLE SYNTHESIS</div>
+        <div style="font-size:1.3rem;font-weight:800;margin-bottom:2px">ORACLE <em style="color:var(--cyan)">SYNTHESIS</em></div>
+        <div class="xxs t3 mb12">COMMAND CENTER ONLINE</div>
+      </div>
+      <div class="ora-msgs" id="oraMsgs"></div>
+      <div class="ora-bottom">
+        <button class="ora-plus" onclick="showToast('Attach feature coming soon')">+</button>
+        <textarea class="ora-input" id="oraInput" placeholder="Direct query to Oracle..." rows="1"
+          onkeydown="oraKey(event)" oninput="growOra(this)"></textarea>
+        <button class="ora-send" id="oraSendBtn" onclick="sendOra()">➤</button>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="screen" id="clientsScreen">
+      <div class="lbl">SECURE COLLABORATION HUB</div>
+      <div style="font-size:1.5rem;font-weight:800;margin-bottom:5px">Client <em style="color:var(--cyan)">Sync</em></div>
+      <div class="sm t2 mb16">High-fidelity environment for seamless delivery and project communication.</div>
+      <div class="card card-c mb12">
+        <div class="rb mb12">
+          <div class="row"><span class="tc">✦</span><div class="stitle">SYNC NODES</div></div>
+          <div class="pill pill-c" id="activeChannelsBadge">0 ACTIVE</div>
+        </div>
+        <div id="syncMsgArea"></div>
+        <div class="row mt10">
+          <input class="sync-input" id="syncInput" placeholder="Transmit data to node..." onkeydown="if(event.key==='Enter'){sendSync();}" autocomplete="off">
+          <button class="sync-send" onclick="sendSync()">➤</button>
+        </div>
+      </div>
+      <div class="card mb12">
+        <div class="lbl mb10">TRANSPARENCY LOG</div>
+        <div class="trans-row"><div class="trans-ico">✅</div><div><div class="trans-n">MILESTONE: CORE LOGIC VERIFIED</div><div class="trans-m">Verified by Oracle Agent v2.4 • 2m ago</div></div></div>
+        <div class="trans-row"><div class="trans-ico">📦</div><div><div class="trans-n">ASSET BATCH TRANSFERRED</div><div class="trans-m">Neural Deliverable Sync • 1h ago</div></div></div>
+        <div class="trans-row" style="opacity:0.5"><div class="trans-ico">⏳</div><div><div class="trans-n">AWAITING CLIENT REVIEW</div><div class="trans-m">Stage: Feedback Loop Alpha</div></div></div>
+        <div class="div"></div>
+        <div class="lbl mb4">ARCHITECT INTEGRITY SCORE</div>
+        <div style="text-align:center;padding:8px 0"><div style="font-size:2.3rem;font-weight:700;color:var(--cyan);font-family:var(--mono)">99.8%</div><div class="xxs t3">Verified by Oracle Network</div></div>
+      </div>
+
+      <!-- FILE UPLOAD -->
+      <div class="rb mb10">
+        <div class="row"><span class="tc">✦</span><div class="fw7">NEURAL DELIVERABLES</div></div>
+        <button class="btn-c" style="padding:5px 11px;font-size:0.65rem" onclick="document.getElementById('fileInput').click()">+ UPLOAD</button>
+      </div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <input type="file" id="fileInput" multiple onchange="handleFiles(this.files)">
+        <div class="upload-ico">📁</div>
+        <div class="xs t3">Drop files here or tap to upload</div>
+        <div class="xxs t3 mt4">Any file type accepted</div>
+      </div>
+      <div id="deliverablesList"></div>
+    </div>
+
+    <!-- MASTERY -->
+    <div class="screen" id="masteryScreen">
+      <div class="lbl">SYSTEM STATUS: OPERATIONAL</div>
+      <div style="font-size:1.5rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:12px;line-height:1.1">MASTERY<br>HUB_01</div>
+      <div class="rank-card">
+        <div class="rank-badge" id="rankBadge">L1</div>
+        <div>
+          <div class="lbl">CURRENT STATUS</div>
+          <div class="rank-n" id="rankName">FREELANCER</div>
+          <div class="rank-s" id="rankSub">Add projects to gain XP and rank up</div>
+        </div>
+      </div>
+
+      <!-- UPGRADE -->
+      <div class="upgrade-card">
+        <div class="upgrade-title">⚡ Oracle Pro Plan</div>
+        <div class="upgrade-sub">Unlock unlimited AI queries, priority synthesis, and advanced client management tools.</div>
+        <div class="upgrade-features">
+          <div class="upgrade-feat">Unlimited Oracle AI</div>
+          <div class="upgrade-feat">Priority Synthesis</div>
+          <div class="upgrade-feat">Advanced Analytics</div>
+          <div class="upgrade-feat">Custom Agent Design</div>
+          <div class="upgrade-feat">White-label Reports</div>
+          <div class="upgrade-feat">1-on-1 Strategy Call</div>
+        </div>
+        <a href="YOUR_STRIPE_PAYMENT_LINK" target="_blank" class="btn-upgrade">⚡ UPGRADE TO PRO — $29/mo</a>
+      </div>
+
+      <div class="card card-c mb12">
+        <div class="lbl mb3">ACTIVE TRACK</div>
+        <div class="fw7 mt4 mb5" style="font-size:0.95rem">Agent Orchestration: Multi-Model Chains</div>
+        <div class="xs t2 mb12">Master the architecture of autonomous agent loops using LangGraph and semantic routing.</div>
+        <div class="rb mb7"><div class="xs t3">OVERALL PROGRESS</div><div class="xs mono tc" id="mastPct">0%</div></div>
+        <div class="pbar-bg mb12"><div class="pbar" id="mastBar" style="width:0%"></div></div>
+        <div class="row">
+          <button class="btn-c btn-cf" style="flex:1;font-size:0.78rem" onclick="showToast('Resuming protocol...')">RESUME PROTOCOL</button>
+          <button class="btn-c" style="flex:1;font-size:0.78rem" onclick="showToast('Syllabus loaded')">VIEW SYLLABUS</button>
+        </div>
+      </div>
+      <div class="card mb12">
+        <div class="rb mb4"><div class="row"><span>⚡</span><div class="xxs mono t3">24H STREAK</div></div></div>
+        <div class="lbl">FOCUS INTENSITY</div>
+        <div style="font-size:1.2rem;font-weight:700">4.8 <span class="t3" style="font-size:0.85rem">Hours/Day</span></div>
+        <div class="div"></div>
+        <div class="lbl mb8">LEARNING TRACKS</div>
+        <div class="track-card"><div class="track-top"><div class="track-n">Prompt Engineering</div><div class="track-p">100%</div></div><div class="pbar-bg"><div class="pbar" style="width:100%"></div></div></div>
+        <div class="track-card"><div class="track-top"><div class="track-n">LLM Foundations</div><div class="track-p">92%</div></div><div class="pbar-bg"><div class="pbar" style="width:92%"></div></div></div>
+        <div class="track-card"><div class="track-top"><div class="track-n">Deployment</div><div class="track-p">15%</div></div><div class="pbar-bg"><div class="pbar pbar-p" style="width:15%"></div></div></div>
+      </div>
+      <div class="rb mb10"><div class="fw7">MASTERY BADGES</div><button class="btn-c" style="padding:5px 11px;font-size:0.65rem" onclick="showToast('Viewing all records')">VIEW ALL</button></div>
+      <div class="badge-card"><div class="badge-ico">🤖</div><div><div class="badge-n">Agent Architect</div><div class="badge-d">Deployed over 50 autonomous agent workflows with 99.9% uptime.</div><div class="badge-f"><div class="pill pill-y">LEGENDARY</div><div class="xxs t3">Oct 2025</div></div></div></div>
+      <div class="badge-card"><div class="badge-ico">✨</div><div><div class="badge-n">Prompt Master</div><div class="badge-d">Refined complex LLM chains to peak efficiency.</div><div class="badge-f"><div class="pill pill-c">ELITE</div></div></div></div>
+      <div class="badge-card"><div class="badge-ico">⚡</div><div><div class="badge-n">Elite Closer</div><div class="badge-d">100% project completion rate across all engagements.</div><div class="badge-f"><div class="pill pill-g">VERIFIED</div></div></div></div>
+      <div class="fw7 mt16 mb10">✦ ORACLE INSIGHTS</div>
+      <div class="card">
+        <div class="insight-card"><div class="insight-tag">MARKET VOLATILITY</div><div class="insight-n">GPU Cluster Scalability Shifts</div><div class="insight-t">Inference costs for 400B+ models projected to drop 40% following new spatial compute benchmarks.</div><div class="insight-f"><div style="font-size:0.65rem;color:var(--text3)">2 MIN READ</div><div class="tc sm">→</div></div></div>
+        <div class="insight-card"><div class="insight-tag">NEURAL ARCHITECTURE</div><div class="insight-n">The Rise of Sparse Autoencoders</div><div class="insight-t">Interpretability breakthroughs allow surgical manipulation of model features, reducing hallucination by 22%.</div><div class="insight-f"><div style="font-size:0.65rem;color:var(--text3)">5 MIN READ</div><div class="tc sm">→</div></div></div>
+        <div class="insight-card"><div class="insight-tag">AI ETHICS</div><div class="insight-n">Digital Watermarking Protocols</div><div class="insight-t">New consensus on cryptographic provenance for synthetic media adopted by major edge-compute providers.</div><div class="insight-f"><div style="font-size:0.65rem;color:var(--text3)">3 MIN READ</div><div class="tc sm">→</div></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav id="bottomNav">
+    <button class="ni on" id="ni-dash" onclick="goScreen('dashScreen','ni-dash')"><span class="ni-icon">⊞</span><span>Dashboard</span></button>
+    <button class="ni" id="ni-forge" onclick="goScreen('forgeScreen','ni-forge')"><span class="ni-icon">⚡</span><span>Forge</span></button>
+    <button class="ni" id="ni-oracle" onclick="goScreen('oracleScreen','ni-oracle')"><span class="ni-icon">✦</span><span>Oracle</span></button>
+    <button class="ni" id="ni-clients" onclick="goScreen('clientsScreen','ni-clients')"><span class="ni-icon">◈</span><span>Clients</span></button>
+    <button class="ni" id="ni-mastery" onclick="goScreen('masteryScreen','ni-mastery')"><span class="ni-icon">⬡</span><span>Mastery</span></button>
+  </nav>
+</div>
+
+<!-- ADD PROJECT MODAL -->
+<div class="overlay" id="addModal">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚡ New Operation</div>
+    <div class="sf"><label>Project Name *</label><input type="text" id="pName" placeholder="e.g. Nebula SaaS" autocomplete="off"></div>
+    <div class="sf"><label>Client / Company</label><input type="text" id="pClient" placeholder="e.g. Nexus Corp" autocomplete="off"></div>
+    <div class="sf"><label>Revenue (USD)</label><input type="number" id="pRevenue" placeholder="e.g. 4500" min="0"></div>
+    <div class="sf"><label>Status</label>
+      <select id="pStatus"><option value="IN PROGRESS">IN PROGRESS</option><option value="AI REVIEW">AI REVIEW</option><option value="DEPLOYING">DEPLOYING</option><option value="COMPLETE">COMPLETE</option></select>
+    </div>
+    <div class="sf"><label>Progress % (0–100)</label><input type="number" id="pProgress" placeholder="e.g. 65" min="0" max="100"></div>
+    <div class="sf"><label>ETA</label><input type="text" id="pEta" placeholder="e.g. 48H" autocomplete="off"></div>
+    <div class="sf-err" id="sfErr">Please enter a project name.</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="saveBtn" onclick="saveProject()">DEPLOY OPERATION</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete Operation?</div>
+    <div class="confirm-text" id="confirmText">This cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="btn-no" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-yes" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ─────────────────────────────────────────
+   SUPABASE CONFIG
+   Replace these two values after setup
+───────────────────────────────────────── */
+var SUPABASE_URL      = 'https://bbmvwtaozzlfiwgngftv.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJibXZ3dGFvenpsZml3Z25nZnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNzQ2ODcsImV4cCI6MjA4OTc1MDY4N30.I0-_RsX095RwvAkbPKPysPCE3jW0-ZF7odOKM5dGZHI';
+var STRIPE_LINK       = 'YOUR_STRIPE_PAYMENT_LINK';
+
+var sb = null;
+var configured = (SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY');
+
+/* ─────────────────────────────────────────
+   STATE
+───────────────────────────────────────── */
+var S = {
+  user:      null,
+  userName:  '',
+  projects:  [],
+  syncMsgs:  [],
+  oraMsgs:   [],
+  files:     [],
+  xp:        0
+};
+
+var deleteId    = null;
+var oraWaiting  = false;
+var currentScreen = 'dashScreen';
+var currentNav    = 'ni-dash';
+
+/* ─────────────────────────────────────────
+   UTILS
+───────────────────────────────────────── */
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function nowTime(){ var d=new Date(); return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function fmtBytes(b){ if(b<1024) return b+'B'; if(b<1048576) return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; }
+
+var _toastTimer;
+function showToast(msg, isErr){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+}
+window.showToast = showToast;
+
+function setAuthErr(m){ document.getElementById('authErr').textContent = m; }
+function clearAuthErr(){ document.getElementById('authErr').textContent = ''; }
+
+function setBtnLoading(id, loading, label){
+  var btn = document.getElementById(id);
+  if(!btn) return;
+  btn.disabled = loading;
+  btn.textContent = loading ? 'LOADING...' : label;
+}
+
+/* ─────────────────────────────────────────
+   INIT
+───────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function(){
+  // Fix stripe link
+  var upgradeLink = document.querySelector('.btn-upgrade');
+  if(upgradeLink && STRIPE_LINK !== 'YOUR_STRIPE_PAYMENT_LINK') upgradeLink.href = STRIPE_LINK;
+
+  if(!configured){
+    document.getElementById('setupBanner').classList.remove('gone');
+    // Fallback to localStorage mode
+    useFallbackMode();
+    return;
+  }
+
+  try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){
+    useFallbackMode(); return;
+  }
+
+  sb.auth.getSession().then(function(result){
+    if(result.data && result.data.session){
+      bootUser(result.data.session.user);
+    } else {
+      showAuth();
+    }
+  }).catch(function(){ useFallbackMode(); });
+
+  sb.auth.onAuthStateChange(function(event, session){
+    if(event === 'SIGNED_OUT'){
+      S = { user:null, userName:'', projects:[], syncMsgs:[], oraMsgs:[], files:[], xp:0 };
+      showAuth();
+    }
+  });
+});
+
+function showAuth(){
+  document.getElementById('loadScreen').classList.add('gone');
+  document.getElementById('authScreen').classList.remove('gone');
+}
+
+function useFallbackMode(){
+  // Use localStorage when Supabase not configured
+  document.getElementById('loadScreen').classList.add('gone');
+  showAuth();
+  // Patch auth to use localStorage
+  window._fallback = true;
+}
+
+/* ─────────────────────────────────────────
+   AUTH
+───────────────────────────────────────── */
+function switchTab(tab){
+  clearAuthErr();
+  var isLogin = tab === 'login';
+  document.getElementById('tabLogin').classList.toggle('on', isLogin);
+  document.getElementById('tabSignup').classList.toggle('on', !isLogin);
+  document.getElementById('loginForm').style.display  = isLogin ? 'block' : 'none';
+  document.getElementById('signupForm').style.display = isLogin ? 'none'  : 'block';
+  document.getElementById('aTitle').textContent = isLogin ? 'Welcome Back'            : 'Join Oracle Command';
+  document.getElementById('aSub').textContent   = isLogin ? 'Sign in to your command center' : 'Initialize your architect profile';
+}
+window.switchTab = switchTab;
+
+function doLogin(){
+  clearAuthErr();
+  var email = document.getElementById('lEmail').value.trim();
+  var pass  = document.getElementById('lPass').value;
+  if(!email || !pass){ setAuthErr('Please fill in all fields.'); return; }
+  setBtnLoading('loginBtn', true, 'ACCESS COMMAND CENTER');
+
+  if(window._fallback){
+    // localStorage auth
+    var users = JSON.parse(localStorage.getItem('oc_users')||'{}');
+    if(!users[email]){ setAuthErr('No account found. Sign up first.'); setBtnLoading('loginBtn',false,'ACCESS COMMAND CENTER'); return; }
+    if(users[email].pass !== btoa(pass)){ setAuthErr('Incorrect password.'); setBtnLoading('loginBtn',false,'ACCESS COMMAND CENTER'); return; }
+    var fakeUser = { id: email, email: email, user_metadata:{ name: users[email].name } };
+    bootUser(fakeUser);
+    return;
+  }
+
+  sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res){
+    setBtnLoading('loginBtn',false,'ACCESS COMMAND CENTER');
+    if(res.error){ setAuthErr(res.error.message); return; }
+    bootUser(res.data.user);
+  }).catch(function(e){ setBtnLoading('loginBtn',false,'ACCESS COMMAND CENTER'); setAuthErr('Connection error. Try again.'); });
+}
+window.doLogin = doLogin;
+
+function doSignup(){
+  clearAuthErr();
+  var name  = document.getElementById('sName').value.trim();
+  var email = document.getElementById('sEmail').value.trim();
+  var pass  = document.getElementById('sPass').value;
+  if(!name||!email||!pass){ setAuthErr('Please fill in all fields.'); return; }
+  if(pass.length < 6){ setAuthErr('Password must be at least 6 characters.'); return; }
+  if(email.indexOf('@')===-1){ setAuthErr('Please enter a valid email.'); return; }
+  setBtnLoading('signupBtn',true,'INITIALIZE PROFILE');
+
+  if(window._fallback){
+    var users = JSON.parse(localStorage.getItem('oc_users')||'{}');
+    if(users[email]){ setAuthErr('Account already exists. Log in.'); setBtnLoading('signupBtn',false,'INITIALIZE PROFILE'); return; }
+    users[email] = { name: name, pass: btoa(pass) };
+    localStorage.setItem('oc_users', JSON.stringify(users));
+    var fakeUser = { id: email, email: email, user_metadata:{ name: name } };
+    bootUser(fakeUser);
+    return;
+  }
+
+  sb.auth.signUp({ email: email, password: pass, options:{ data:{ name: name } } }).then(function(res){
+    setBtnLoading('signupBtn',false,'INITIALIZE PROFILE');
+    if(res.error){ setAuthErr(res.error.message); return; }
+    if(res.data && res.data.user){
+      // Create profile row
+      sb.from('profiles').upsert({ id: res.data.user.id, name: name, xp: 0 });
+      bootUser(res.data.user);
+    } else {
+      setAuthErr('Check your email to confirm your account, then log in.');
+    }
+  }).catch(function(){ setBtnLoading('signupBtn',false,'INITIALIZE PROFILE'); setAuthErr('Connection error. Try again.'); });
+}
+window.doSignup = doSignup;
+
+function bootUser(user){
+  S.user     = user.id || user.email;
+  S.userName = (user.user_metadata && user.user_metadata.name) || user.email || 'Architect';
+  var initials = S.userName.split(' ').map(function(w){ return w[0]||''; }).join('').substring(0,2).toUpperCase();
+  document.getElementById('userAv').textContent = initials;
+  document.getElementById('authScreen').classList.add('gone');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('loadScreen').classList.add('gone');
+  loadAllData();
+}
+
+function doLogout(){
+  if(window._fallback){ S={user:null,userName:'',projects:[],syncMsgs:[],oraMsgs:[],files:[],xp:0}; showAuth(); return; }
+  if(sb) sb.auth.signOut();
+}
+window.doLogout = doLogout;
+
+/* ─────────────────────────────────────────
+   LOAD ALL DATA
+───────────────────────────────────────── */
+function loadAllData(){
+  if(window._fallback){
+    var saved = JSON.parse(localStorage.getItem('oc_s_'+S.user)||'{}');
+    S.projects = saved.projects || [];
+    S.syncMsgs = saved.syncMsgs || [];
+    S.oraMsgs  = saved.oraMsgs  || [];
+    S.files    = saved.files    || [];
+    S.xp       = saved.xp       || 0;
+    renderAll();
+    addHist('Oracle Command initialized. Welcome, <span class="hl">'+esc(S.userName.split(' ')[0])+'</span>.');
+    return;
+  }
+  // Load from Supabase in parallel
+  var done = 0;
+  function check(){ done++; if(done>=4){ renderAll(); addHist('Oracle Command initialized. Welcome, <span class="hl">'+esc(S.userName.split(' ')[0])+'</span>.'); } }
+
+  sb.from('projects').select('*').eq('user_id',S.user).order('created_at',{ascending:false})
+    .then(function(r){ if(r.data) S.projects = r.data; check(); }).catch(check);
+
+  sb.from('sync_messages').select('*').eq('user_id',S.user).order('created_at',{ascending:true})
+    .then(function(r){ if(r.data) S.syncMsgs = r.data; check(); }).catch(check);
+
+  sb.from('oracle_messages').select('*').eq('user_id',S.user).order('created_at',{ascending:true})
+    .then(function(r){ if(r.data) S.oraMsgs = r.data; check(); }).catch(check);
+
+  sb.from('profiles').select('xp').eq('id',S.user).single()
+    .then(function(r){ if(r.data) S.xp = r.data.xp || 0; check(); }).catch(check);
+
+  loadFiles();
+}
+
+function saveLocal(){
+  if(window._fallback) localStorage.setItem('oc_s_'+S.user, JSON.stringify({ projects:S.projects, syncMsgs:S.syncMsgs, oraMsgs:S.oraMsgs, files:S.files, xp:S.xp }));
+}
+
+function updateXP(addAmt){
+  S.xp += addAmt;
+  if(window._fallback){ saveLocal(); return; }
+  sb.from('profiles').upsert({ id:S.user, xp:S.xp }).catch(function(){});
+}
+
+/* ─────────────────────────────────────────
+   NAV
+───────────────────────────── */
+function goScreen(sid, nid){
+  if(currentScreen === sid) return;
+  document.getElementById(currentScreen).classList.remove('on');
+  document.getElementById(currentNav).classList.remove('on');
+  document.getElementById(sid).classList.add('on');
+  document.getElementById(nid).classList.add('on');
+  currentScreen = sid; currentNav = nid;
+  if(sid === 'oracleScreen'){ renderOra(); setTimeout(function(){ var i=document.getElementById('oraInput'); if(i)i.focus(); },300); }
+  if(sid === 'clientsScreen'){ loadFiles(); }
+}
+window.goScreen = goScreen;
+
+/* ─────────────────────────────────────────
+   RENDER ALL
+───────────────────────────── */
+function renderAll(){ renderDash(); renderOps(); renderSync(); renderMastery(); renderDeliverables(); if(currentScreen==='oracleScreen') renderOra(); }
+
+/* ─────────────────────────────────────────
+   DASHBOARD
+───────────────────────────── */
+function renderDash(){
+  var totalRev=0, active=0, clients={};
+  for(var i=0;i<S.projects.length;i++){
+    var p=S.projects[i];
+    totalRev += parseFloat(p.revenue)||0;
+    if(p.status!=='COMPLETE') active++;
+    if(p.client) clients[p.client]=1;
+  }
+  var nc = Object.keys(clients).length;
+  document.getElementById('dRev').textContent    = '$'+totalRev.toLocaleString();
+  document.getElementById('dRevS').textContent   = active>0 ? active+' active ops' : 'No active ops';
+  document.getElementById('dNodes').innerHTML    = active+' <span style="font-size:0.85rem;color:var(--text3)">live</span>';
+  document.getElementById('dClients').innerHTML  = nc+' <span style="font-size:0.85rem;color:var(--text3)">active</span>';
+  document.getElementById('activeChannelsBadge').textContent = nc+' ACTIVE';
+}
+
+/* ─────────────────────────────────────────
+   PROJECTS
+───────────────────────────── */
+function renderOps(){
+  var el=document.getElementById('opsList');
+  if(!S.projects.length){ el.innerHTML='<div class="empty"><div class="empty-ico">🚀</div>No active operations yet.<br>Hit "+ ADD OP" to deploy your first project.</div>'; return; }
+  var h='';
+  for(var i=0;i<S.projects.length;i++){
+    var p=S.projects[i];
+    var pct=Math.min(Math.max(parseInt(p.progress)||0,0),100);
+    var pc = p.status==='COMPLETE'?'pill-g':p.status==='DEPLOYING'?'pill-c':p.status==='AI REVIEW'?'pill-p':'pill-y';
+    var rev = parseFloat(p.revenue)?' · $'+parseFloat(p.revenue).toLocaleString():'';
+    var id  = p.id || i;
+    h += '<div class="op-card"><div class="op-top"><div class="pill '+pc+'">'+esc(p.status)+'</div><button class="del-btn" onclick="askDelete(\''+id+'\')">✕</button></div><div class="op-name">'+esc(p.name)+'</div><div class="op-sub">'+esc(p.client||'')+rev+'</div><div class="pbar-bg mt8"><div class="pbar" style="width:'+pct+'%"></div></div><div class="op-foot"><div class="xxs t3">'+pct+'% complete</div><div class="xxs mono t3">ETA: '+esc(p.eta||'TBD')+'</div></div></div>';
+  }
+  el.innerHTML = h;
+}
+
+function addHist(html){
+  var el=document.getElementById('histList');
+  var div=document.createElement('div'); div.className='hist-item';
+  div.innerHTML='<div class="hist-dot"></div><div style="flex:1"><span class="hist-time">'+nowTime()+' </span><span class="hist-text">'+html+'</span></div>';
+  el.insertBefore(div, el.firstChild);
+}
+
+function openModal(){
+  ['pName','pClient','pRevenue','pProgress','pEta'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('pStatus').value='IN PROGRESS';
+  document.getElementById('sfErr').style.display='none';
+  document.getElementById('addModal').classList.add('on');
+}
+window.openModal = openModal;
+
+function closeModal(){ document.getElementById('addModal').classList.remove('on'); }
+window.closeModal = closeModal;
+
+function saveProject(){
+  var name = document.getElementById('pName').value.trim();
+  if(!name){ document.getElementById('sfErr').style.display='block'; return; }
+  document.getElementById('sfErr').style.display='none';
+  var rev = parseFloat(document.getElementById('pRevenue').value);
+  var pct = parseInt(document.getElementById('pProgress').value,10);
+  var proj = {
+    name:     name,
+    client:   document.getElementById('pClient').value.trim(),
+    revenue:  isNaN(rev)||rev<0?0:rev,
+    status:   document.getElementById('pStatus').value,
+    progress: isNaN(pct)?0:Math.min(Math.max(pct,0),100),
+    eta:      document.getElementById('pEta').value.trim()||'TBD'
+  };
+  setBtnLoading('saveBtn',true,'DEPLOY OPERATION');
+
+  if(window._fallback){
+    proj.id = Date.now().toString();
+    S.projects.unshift(proj); updateXP(50); saveLocal();
+    renderAll(); addHist('New operation: <span class="hl">'+esc(name)+'</span>');
+    closeModal(); setBtnLoading('saveBtn',false,'DEPLOY OPERATION'); showToast('Operation deployed: '+name); return;
+  }
+
+  var row = Object.assign({ user_id: S.user }, proj);
+  sb.from('projects').insert(row).select().then(function(res){
+    setBtnLoading('saveBtn',false,'DEPLOY OPERATION');
+    if(res.error){ showToast('Error: '+res.error.message, true); return; }
+    if(res.data && res.data[0]) S.projects.unshift(res.data[0]);
+    else S.projects.unshift(proj);
+    updateXP(50); renderAll();
+    addHist('New operation: <span class="hl">'+esc(name)+'</span>');
+    closeModal(); showToast('Operation deployed: '+name);
+  }).catch(function(){ setBtnLoading('saveBtn',false,'DEPLOY OPERATION'); showToast('Save failed. Try again.',true); });
+}
+window.saveProject = saveProject;
+
+function askDelete(id){
+  deleteId = id;
+  var proj = S.projects.filter(function(p){ return String(p.id)===String(id); })[0];
+  var name = proj ? proj.name : 'this project';
+  document.getElementById('confirmText').textContent = 'Delete "'+name+'? This cannot be undone.';
+  document.getElementById('confirmOverlay').classList.add('on');
+}
+window.askDelete = askDelete;
+
+function closeConfirm(){ deleteId=null; document.getElementById('confirmOverlay').classList.remove('on'); }
+window.closeConfirm = closeConfirm;
+
+function confirmDelete(){
+  if(!deleteId){ closeConfirm(); return; }
+  var idx = -1;
+  for(var i=0;i<S.projects.length;i++){ if(String(S.projects[i].id)===String(deleteId)){ idx=i; break; } }
+  var name = idx>=0 ? S.projects[idx].name : '';
+
+  if(window._fallback){
+    if(idx>=0) S.projects.splice(idx,1);
+    saveLocal(); renderAll(); addHist('Operation terminated: '+esc(name)); closeConfirm(); showToast('Operation removed'); return;
+  }
+
+  sb.from('projects').delete().eq('id',deleteId).then(function(res){
+    if(res.error){ showToast('Delete failed.',true); closeConfirm(); return; }
+    if(idx>=0) S.projects.splice(idx,1);
+    renderAll(); addHist('Operation terminated: '+esc(name)); closeConfirm(); showToast('Operation removed');
+  }).catch(function(){ showToast('Delete failed.',true); closeConfirm(); });
+}
+window.confirmDelete = confirmDelete;
+
+/* ─────────────────────────────────────────
+   ORACLE AI
+───────────────────────────── */
+function renderOra(){
+  var el=document.getElementById('oraMsgs');
+  if(!S.oraMsgs.length){
+    el.innerHTML='<div class="msg-o"><div class="o-header"><div class="o-ind">✦</div><div><div class="o-name">ORACLE AI</div><div class="o-status">System online</div></div></div><div class="bub-o">System online. I\'m your AI command interface — optimized for technical architecture, freelance strategy, and project synthesis.<br><br>What shall we build today, Architect?</div></div>';
+  } else {
+    var h='';
+    for(var i=0;i<S.oraMsgs.length;i++){
+      var m=S.oraMsgs[i];
+      if(m.role==='user'){
+        h+='<div class="msg-u"><div class="bub-u">'+esc(m.content)+'</div></div>';
+      } else {
+        h+='<div class="msg-o"><div class="o-header"><div class="o-ind">✦</div><div><div class="o-name">ORACLE AI</div><div class="o-status">Synthesis complete</div></div></div><div class="bub-o">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
+      }
+    }
+    el.innerHTML=h;
+  }
+  el.scrollTop=el.scrollHeight;
+}
+
+function oraKey(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendOra(); } }
+window.oraKey=oraKey;
+
+function growOra(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
+window.growOra=growOra;
+
+function addTyping(){
+  var el=document.getElementById('oraMsgs');
+  var d=document.createElement('div'); d.id='oraTyping'; d.className='msg-o';
+  d.innerHTML='<div class="o-header"><div class="o-ind">✦</div><div><div class="o-name">ORACLE AI</div><div class="o-status">Deep Neural Sync Active...</div></div></div><div class="bub-o"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+}
+function removeTyping(){ var e=document.getElementById('oraTyping'); if(e)e.remove(); }
+function setOraDisabled(v){ var b=document.getElementById('oraSendBtn'); if(b)b.disabled=v; oraWaiting=v; }
+
+function saveOraMsg(role, content){
+  var msg = { role:role, content:content };
+  S.oraMsgs.push(msg);
+  if(window._fallback){ saveLocal(); return; }
+  sb.from('oracle_messages').insert({ user_id:S.user, role:role, content:content }).catch(function(){});
+}
+
+function callOracle(msgs, onDone){
+  var body = JSON.stringify({
+    model:'claude-sonnet-4-20250514', max_tokens:1000,
+    system:'You are Oracle, an elite AI command interface for Oracle Command — a cutting-edge freelancer platform. You specialize in: technical architecture, AI/ML strategy, freelance business growth, project planning, prompt engineering, and web development. Your tone is sharp, precise, visionary. Use concise but rich responses. Format code clearly. The user is an elite freelancer (Architect) managing clients, deploying AI agents, and building advanced technical projects.',
+    messages: msgs
+  });
+  fetch('https://api.anthropic.com/v1/messages',{ method:'POST', headers:{'Content-Type':'application/json'}, body:body })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var reply = (d.content&&d.content[0]&&d.content[0].text)||'Oracle synthesis failed. Please retry.';
+      onDone(reply, null);
+    })
+    .catch(function(){ onDone('Neural link disrupted. Check your connection and retry, Architect.', 'err'); });
+}
+
+function sendOra(){
+  if(oraWaiting) return;
+  var input=document.getElementById('oraInput');
+  var text=input.value.trim(); if(!text)return;
+  input.value=''; input.style.height='auto';
+  saveOraMsg('user', text);
+  renderOra(); addTyping(); setOraDisabled(true);
+  var start=Math.max(0,S.oraMsgs.length-10);
+  var apiMsgs=[];
+  for(var i=start;i<S.oraMsgs.length;i++) apiMsgs.push({role:S.oraMsgs[i].role==='user'?'user':'assistant',content:S.oraMsgs[i].content});
+  callOracle(apiMsgs, function(reply){
+    removeTyping(); saveOraMsg('assistant',reply); updateXP(10); renderOra(); renderMastery(); setOraDisabled(false);
+  });
+}
+window.sendOra=sendOra;
+
+/* ─────────────────────────────────────────
+   CLIENT SYNC
+───────────────────────────── */
+function renderSync(){
+  var el=document.getElementById('syncMsgArea');
+  if(!S.syncMsgs.length){ el.innerHTML='<div class="empty" style="padding:16px 0"><div class="empty-ico">💬</div>No messages yet.<br>Start the conversation.</div>'; return; }
+  var h='';
+  for(var i=0;i<S.syncMsgs.length;i++){
+    var m=S.syncMsgs[i];
+    var isMe = m.from_sender==='me'||m.from==='me';
+    h+='<div class="chat-bub'+(isMe?' right':'')+'"><div class="cb-sender">'+(isMe?'YOU':'CLIENT')+'</div><div class="cb-text">'+esc(m.text||m.content||'')+'</div></div>';
+  }
+  el.innerHTML=h;
+}
+
+function sendSync(){
+  var input=document.getElementById('syncInput');
+  var text=input.value.trim(); if(!text)return;
+  input.value='';
+  if(window._fallback){ S.syncMsgs.push({from:'me',from_sender:'me',text:text}); saveLocal(); renderSync(); renderDash(); return; }
+  sb.from('sync_messages').insert({user_id:S.user,from_sender:'me',text:text}).select()
+    .then(function(r){ if(r.data&&r.data[0]) S.syncMsgs.push(r.data[0]); else S.syncMsgs.push({from_sender:'me',text:text}); renderSync(); renderDash(); })
+    .catch(function(){ S.syncMsgs.push({from_sender:'me',text:text}); renderSync(); });
+}
+window.sendSync=sendSync;
+
+/* ─────────────────────────────────────────
+   FILE UPLOADS
+───────────────────────────── */
+function loadFiles(){
+  if(window._fallback){ renderDeliverables(); return; }
+  if(!sb) return;
+  sb.storage.from('deliverables').list(S.user+'/', {sortBy:{column:'created_at',order:'desc'}})
+    .then(function(r){
+      if(r.data) S.files = r.data.filter(function(f){ return f.name; });
+      renderDeliverables();
+    }).catch(function(){ renderDeliverables(); });
+}
+
+function renderDeliverables(){
+  var el=document.getElementById('deliverablesList');
+  if(!S.files.length){ el.innerHTML='<div class="empty"><div class="empty-ico">📭</div>No deliverables yet.<br>Upload files above.</div>'; return; }
+  var h='';
+  for(var i=0;i<S.files.length;i++){
+    var f=S.files[i];
+    var name=f.name||f.filename||'File';
+    var size=f.metadata&&f.metadata.size?fmtBytes(f.metadata.size):'';
+    var url=f.url||(window._fallback?'#':'');
+    h+='<div class="del-card"><div class="del-top"><div class="del-name">'+esc(name)+'</div><div class="pill pill-g">UPLOADED</div></div><div class="del-meta">'+size+(size?' • ':'')+'Ready for download</div>'+(url&&url!=='#'?'<a href="'+url+'" target="_blank" class="btn-dl">DOWNLOAD ASSET</a>':'<button class="btn-dl" onclick="getDownloadUrl(\''+esc(name)+'\')">DOWNLOAD ASSET</button>')+'</div>';
+  }
+  el.innerHTML=h;
+}
+
+function getDownloadUrl(name){
+  if(!sb||window._fallback){ showToast('Configure Supabase to download files'); return; }
+  var r = sb.storage.from('deliverables').getPublicUrl(S.user+'/'+name);
+  if(r.data&&r.data.publicUrl) window.open(r.data.publicUrl,'_blank');
+}
+window.getDownloadUrl=getDownloadUrl;
+
+function handleFiles(files){
+  if(!files||!files.length) return;
+  if(window._fallback){
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      S.files.unshift({name:f.name,metadata:{size:f.size},url:'#'});
+      saveLocal();
+    }
+    renderDeliverables(); showToast(files.length+' file(s) saved locally (configure Supabase for cloud storage)'); return;
+  }
+  showToast('Uploading '+files.length+' file(s)...');
+  var done=0;
+  for(var j=0;j<files.length;j++){
+    (function(file){
+      var path = S.user+'/'+Date.now()+'_'+file.name;
+      sb.storage.from('deliverables').upload(path, file, {upsert:true})
+        .then(function(r){
+          done++;
+          if(done===files.length){ showToast('Upload complete!'); loadFiles(); }
+        })
+        .catch(function(){ done++; showToast('Upload failed. Check storage bucket.',true); });
+    })(files[j]);
+  }
+}
+window.handleFiles=handleFiles;
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  var files = e.dataTransfer&&e.dataTransfer.files;
+  if(files&&files.length) handleFiles(files);
+}
+window.handleDrop=handleDrop;
+
+/* ─────────────────────────────────────────
+   MASTERY
+───────────────────────────── */
+function renderMastery(){
+  var pct=Math.min(Math.floor(S.xp/10),100);
+  var r=getRank(S.xp);
+  document.getElementById('rankBadge').textContent=r.level;
+  document.getElementById('rankName').textContent=r.name;
+  document.getElementById('rankSub').textContent=r.sub;
+  document.getElementById('mastPct').textContent=pct+'%';
+  document.getElementById('mastBar').style.width=pct+'%';
+}
+function getRank(xp){
+  if(xp>=500) return{level:'L5',name:'ELITE ARCHITECT',sub:'Top 0.1% of global freelancers'};
+  if(xp>=250) return{level:'L4',name:'SENIOR ARCHITECT',sub:'Approaching Elite status'};
+  if(xp>=100) return{level:'L3',name:'MASTER BUILDER',sub:'Unlocking advanced protocols'};
+  if(xp>=50)  return{level:'L2',name:'ARCHITECT',sub:'Solid foundation established'};
+  return{level:'L1',name:'FREELANCER',sub:'Add projects to gain XP and rank up'};
+}
+
+/* ─────────────────────────────────────────
+   FORGE SYNTHESIS
+───────────────────────────── */
+function runSynthesis(){
+  var mission=document.getElementById('missionTa').value.trim();
+  if(!mission){ showToast('Define your mission first'); return; }
+  var prompt='Synthesize a complete technical roadmap for this mission: '+mission;
+  saveOraMsg('user',prompt);
+  showToast('Synthesis initiated — opening Oracle');
+  goScreen('oracleScreen','ni-oracle');
+  renderOra(); addTyping(); setOraDisabled(true);
+  var start=Math.max(0,S.oraMsgs.length-10);
+  var apiMsgs=[];
+  for(var i=start;i<S.oraMsgs.length;i++) apiMsgs.push({role:S.oraMsgs[i].role==='user'?'user':'assistant',content:S.oraMsgs[i].content});
+  callOracle(apiMsgs,function(reply){
+    removeTyping(); saveOraMsg('assistant',reply); updateXP(10); renderOra(); renderMastery(); setOraDisabled(false);
+  });
+}
+window.runSynthesis=runSynthesis;
+
+/* ─────────────────────────────────────────
+   BACKDROP CLOSE
+───────────────────────────── */
+document.getElementById('addModal').addEventListener('click',function(e){ if(e.target===this)closeModal(); });
+document.getElementById('confirmOverlay').addEventListener('click',function(e){ if(e.target===this)closeConfirm(); });
+
+})();
+</script>
+</body>
+</html>
